@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Локальный транскрайбер</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="privacy-pill"><span></span> Работает локально</div>
+        <h1>Аудио и видео<br>превращаются в текст</h1>
+        <p>Файлы обрабатываются на этом Mac и не отправляются в облачные сервисы.</p>
+      </header>
+
+      <section class="panel">
+        <form id="transcription-form">
+          <label class="drop-zone" id="drop-zone" for="media-file">
+            <input id="media-file" name="file" type="file"
+              accept="audio/*,video/*,.mkv,.flac,.opus" required>
+            <span class="drop-icon">＋</span>
+            <strong id="file-title">Перетащите файл сюда</strong>
+            <small id="file-subtitle">или нажмите, чтобы выбрать аудио или видео</small>
+          </label>
+
+          <div class="settings-grid">
+            <div class="model-field">
+              <label>
+                <span>Режим</span>
+                <select name="model_profile" id="model-profile">
+                  {% for profile in profiles %}
+                    <option value="{{ profile.key }}" {% if profile.key == default_profile %}selected{% endif %}>
+                      {{ profile.title }} ({{ profile.model_name }},
+                      {% if profile.downloaded %}скачана{% else %}не скачана{% endif %})
+                    </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <div class="model-details">
+                <p class="model-description" id="model-description"></p>
+                <div class="model-details-row">
+                  <div class="model-facts">
+                    <span id="model-size"></span>
+                    <span id="model-cache-path"></span>
+                  </div>
+                  <button class="model-delete-button hidden" id="delete-model-button" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/>
+                    </svg>
+                    Удалить модель
+                  </button>
+                </div>
+              </div>
+            </div>
+            <label>
+              <span>Язык</span>
+              <select name="language">
+                <option value="ru" selected>Русский</option>
+                <option value="auto">Определить автоматически</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="prompt-field">
+            <span>Контекст и термины <em>необязательно</em></span>
+            <small class="field-help">
+              Помогает точнее распознавать имена, названия, аббревиатуры и профессиональные слова.
+            </small>
+            <textarea name="initial_prompt" rows="2"
+              placeholder="Например: проект Atlas; имена: Михаил, Анна; термины: FastAPI, MLX Whisper"></textarea>
+          </label>
+
+          <button class="primary-button" id="submit-button" type="submit">
+            Начать транскрибацию
+          </button>
+        </form>
+      </section>
+
+      <section class="panel status-panel hidden" id="status-panel" aria-live="polite">
+        <div class="status-heading">
+          <div>
+            <small>ТЕКУЩЕЕ ЗАДАНИЕ</small>
+            <h2 id="status-title">Подготовка</h2>
+          </div>
+          <div class="status-actions">
+            <strong id="progress-label">0%</strong>
+            <button class="cancel-button" id="cancel-button" type="button">Отменить</button>
+          </div>
+        </div>
+        <div class="progress-track" id="progress-track"><div id="progress-bar"></div></div>
+        <p id="status-message">Сохраняем файл локально…</p>
+        <p class="error hidden" id="error-message"></p>
+      </section>
+
+      <section class="panel result-panel hidden" id="result-panel">
+        <div class="result-heading">
+          <div>
+            <small>ГОТОВО</small>
+            <h2>Транскрипт</h2>
+          </div>
+          <button class="secondary-button" id="copy-button" type="button">Копировать</button>
+        </div>
+        <p class="result-duration" id="result-duration"></p>
+        <textarea id="result-text" readonly aria-label="Результат транскрибации"></textarea>
+        <div class="downloads" id="downloads"></div>
+      </section>
+
+      <footer>
+        {% if offline %}
+          Строгий офлайн-режим включён. Модель должна быть скачана заранее.
+        {% else %}
+          При первом запуске выбранная модель будет скачана. Медиафайл при этом никуда не передаётся.
+        {% endif %}
+      </footer>
+    </main>
+  </body>
+</html>
+
