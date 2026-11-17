@@ -13,7 +13,7 @@
       <header class="hero">
         <div class="privacy-pill"><span></span> Работает локально</div>
         <h1>Аудио и видео<br>превращаются в текст</h1>
-        <p>Файлы обрабатываются на этом Mac и не отправляются в облачные сервисы.</p>
+        <p>Файлы обрабатываются на этом компьютере и не отправляются в облачные сервисы.</p>
       </header>
 
       <section class="panel">
@@ -28,42 +28,89 @@
 
           <div class="settings-grid">
             <div class="model-field">
-              <label>
-                <span>Режим</span>
-                <select name="model_profile" id="model-profile">
-                  {% for profile in profiles %}
-                    <option value="{{ profile.key }}" {% if profile.key == default_profile %}selected{% endif %}>
-                      {{ profile.title }} ({{ profile.model_name }},
-                      {% if profile.downloaded %}скачана{% else %}не скачана{% endif %})
-                    </option>
-                  {% endfor %}
-                </select>
-              </label>
-              <div class="model-details">
-                <p class="model-description" id="model-description"></p>
-                <div class="model-details-row">
-                  <div class="model-facts">
-                    <span id="model-size"></span>
-                    <span id="model-cache-path"></span>
-                  </div>
-                  <button class="model-delete-button hidden" id="delete-model-button" type="button">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/>
-                    </svg>
-                    Удалить модель
-                  </button>
+              <span class="field-label" id="model-picker-label">Режим</span>
+              <input type="hidden" name="model_profile" id="model-profile"
+                value="{{ default_profile }}">
+              <div class="model-picker" id="model-picker">
+                <button class="model-picker-button" id="model-picker-button" type="button"
+                  aria-haspopup="listbox" aria-expanded="false" aria-controls="model-picker-menu"
+                  aria-labelledby="model-picker-label model-picker-title">
+                  <span class="model-picker-copy">
+                    <strong id="model-picker-title">{{ selected_profile.title }}</strong>
+                    <small id="model-picker-name">{{ selected_profile.model_name }}</small>
+                  </span>
+                  <span class="model-picker-badges" id="model-picker-badges">
+                    {% if selected_profile.recommended %}<span class="badge recommended">Рекомендуется</span>{% endif %}
+                    <span class="badge {% if selected_profile.downloaded %}downloaded{% endif %}">
+                      {% if selected_profile.downloaded %}Скачана{% else %}Не скачана{% endif %}
+                    </span>
+                  </span>
+                  <svg class="model-picker-chevron" viewBox="0 0 14 8" aria-hidden="true">
+                    <path d="m1 1 6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="model-picker-menu hidden" id="model-picker-menu" role="listbox"
+                  aria-label="Выбор режима транскрибации"></div>
+              </div>
+            </div>
+            <div class="language-field">
+              <span class="field-label" id="language-picker-label">Язык</span>
+              <input type="hidden" name="language" id="language" value="ru">
+              <div class="model-picker" id="language-picker">
+                <button class="model-picker-button language-picker-button"
+                  id="language-picker-button" type="button" aria-haspopup="listbox"
+                  aria-expanded="false" aria-controls="language-picker-menu"
+                  aria-labelledby="language-picker-label language-picker-title">
+                  <span class="model-picker-copy">
+                    <strong id="language-picker-title">Русский</strong>
+                    <small>Язык распознавания</small>
+                  </span>
+                  <svg class="model-picker-chevron" viewBox="0 0 14 8" aria-hidden="true">
+                    <path d="m1 1 6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="model-picker-menu language-picker-menu hidden"
+                  id="language-picker-menu" role="listbox" aria-label="Выбор языка">
+                  <button class="model-option language-option selected" type="button"
+                    role="option" aria-selected="true" data-value="ru">Русский</button>
+                  <button class="model-option language-option" type="button"
+                    role="option" aria-selected="false" data-value="auto">Определить автоматически</button>
+                  <button class="model-option language-option" type="button"
+                    role="option" aria-selected="false" data-value="en">English</button>
                 </div>
               </div>
             </div>
-            <label>
-              <span>Язык</span>
-              <select name="language">
-                <option value="ru" selected>Русский</option>
-                <option value="auto">Определить автоматически</option>
-                <option value="en">English</option>
-              </select>
-            </label>
           </div>
+
+          <section class="model-overview" aria-live="polite">
+            <div class="model-overview-topline">
+              <p class="model-device" id="model-device">Устройство: {{ device_summary }}</p>
+              <div class="model-facts">
+                <span id="model-size"></span>
+                <span id="model-engine"></span>
+              </div>
+            </div>
+            <div class="model-advice" id="model-advice"></div>
+            <div class="model-overview-content">
+              <div>
+                <h3>О режиме</h3>
+                <p class="model-description" id="model-description"></p>
+              </div>
+              <div>
+                <h3>Что потребуется</h3>
+                <p class="model-requirements" id="model-requirements"></p>
+              </div>
+            </div>
+            <div class="model-overview-footer">
+              <span class="model-cache-path" id="model-cache-path"></span>
+              <button class="model-delete-button hidden" id="delete-model-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/>
+                </svg>
+                <span id="delete-model-label">Удалить модель</span>
+              </button>
+            </div>
+          </section>
 
           <label class="prompt-field">
             <span>Контекст и термины <em>необязательно</em></span>
@@ -110,6 +157,7 @@
       </section>
 
       <footer>
+        Движок: {{ engine_title }}.<br>
         {% if offline %}
           Строгий офлайн-режим включён. Модель должна быть скачана заранее.
         {% else %}

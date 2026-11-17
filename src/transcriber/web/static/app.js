@@ -17,11 +17,27 @@ const resultDuration = document.querySelector("#result-duration");
 const downloads = document.querySelector("#downloads");
 const copyButton = document.querySelector("#copy-button");
 const cancelButton = document.querySelector("#cancel-button");
-const modelSelect = document.querySelector("#model-profile");
+const modelInput = document.querySelector("#model-profile");
+const modelPicker = document.querySelector("#model-picker");
+const modelPickerButton = document.querySelector("#model-picker-button");
+const modelPickerMenu = document.querySelector("#model-picker-menu");
+const modelPickerTitle = document.querySelector("#model-picker-title");
+const modelPickerName = document.querySelector("#model-picker-name");
+const modelPickerBadges = document.querySelector("#model-picker-badges");
 const modelDescription = document.querySelector("#model-description");
+const modelDevice = document.querySelector("#model-device");
+const modelRequirements = document.querySelector("#model-requirements");
+const modelAdvice = document.querySelector("#model-advice");
 const modelSize = document.querySelector("#model-size");
+const modelEngine = document.querySelector("#model-engine");
 const modelCachePath = document.querySelector("#model-cache-path");
 const deleteModelButton = document.querySelector("#delete-model-button");
+const deleteModelLabel = document.querySelector("#delete-model-label");
+const languageInput = document.querySelector("#language");
+const languagePicker = document.querySelector("#language-picker");
+const languagePickerButton = document.querySelector("#language-picker-button");
+const languagePickerMenu = document.querySelector("#language-picker-menu");
+const languagePickerTitle = document.querySelector("#language-picker-title");
 let activeJobId = null;
 let modelStatuses = new Map();
 
@@ -47,13 +63,131 @@ function setFormLocked(locked) {
   });
   submitButton.disabled = locked;
   deleteModelButton.disabled = locked;
+  modelPickerButton.disabled = locked;
+  languagePickerButton.disabled = locked;
+  modelPickerMenu.querySelectorAll("button").forEach((button) => {
+    button.disabled = locked;
+  });
+  languagePickerMenu.querySelectorAll("button").forEach((button) => {
+    button.disabled = locked;
+  });
+  if (locked) {
+    closeModelPicker();
+    closeLanguagePicker();
+  }
+}
+
+function createBadge(text, className = "") {
+  const badge = document.createElement("span");
+  badge.className = `badge ${className}`.trim();
+  badge.textContent = text;
+  return badge;
 }
 
 function updateModelDescription() {
-  const model = modelStatuses.get(modelSelect.value);
+  const model = modelStatuses.get(modelInput.value);
+  if (!model) return;
+  modelPickerTitle.textContent = model.title;
+  modelPickerName.textContent = model.model_name;
+  modelPickerBadges.replaceChildren();
+  if (model.recommended) {
+    modelPickerBadges.appendChild(createBadge("Рекомендуется", "recommended"));
+  }
+  modelPickerBadges.appendChild(
+    createBadge(model.downloaded ? "Скачана" : "Не скачана", model.downloaded ? "downloaded" : ""),
+  );
   modelDescription.textContent = model?.description || "";
-  modelSize.textContent = model ? `Размер: ${model.size_hint}` : "";
+  modelRequirements.textContent = model.requirements;
+  modelAdvice.textContent = model?.suitability_message || "";
+  modelAdvice.className = `model-advice ${model?.suitability || ""}`;
+  modelSize.textContent = `Модель ${model.size_hint}`;
+  modelEngine.textContent = model.engine_title;
   deleteModelButton.classList.toggle("hidden", !model?.downloaded);
+  modelPickerMenu.querySelectorAll(".model-option").forEach((option) => {
+    const selected = option.dataset.key === model.key;
+    option.classList.toggle("selected", selected);
+    option.setAttribute("aria-selected", String(selected));
+  });
+}
+
+function closeModelPicker({ restoreFocus = false } = {}) {
+  modelPickerMenu.classList.add("hidden");
+  modelPickerButton.setAttribute("aria-expanded", "false");
+  modelPicker.classList.remove("open");
+  if (restoreFocus) modelPickerButton.focus();
+}
+
+function openModelPicker() {
+  if (modelPickerButton.disabled) return;
+  modelPickerMenu.classList.remove("hidden");
+  modelPickerButton.setAttribute("aria-expanded", "true");
+  modelPicker.classList.add("open");
+}
+
+function closeLanguagePicker({ restoreFocus = false } = {}) {
+  languagePickerMenu.classList.add("hidden");
+  languagePickerButton.setAttribute("aria-expanded", "false");
+  languagePicker.classList.remove("open");
+  if (restoreFocus) languagePickerButton.focus();
+}
+
+function openLanguagePicker() {
+  if (languagePickerButton.disabled) return;
+  languagePickerMenu.classList.remove("hidden");
+  languagePickerButton.setAttribute("aria-expanded", "true");
+  languagePicker.classList.add("open");
+}
+
+function selectLanguage(value, { close = true } = {}) {
+  const option = languagePickerMenu.querySelector(`[data-value="${value}"]`);
+  if (!option) return;
+  languageInput.value = value;
+  languagePickerTitle.textContent = option.textContent;
+  languagePickerMenu.querySelectorAll(".language-option").forEach((item) => {
+    const selected = item.dataset.value === value;
+    item.classList.toggle("selected", selected);
+    item.setAttribute("aria-selected", String(selected));
+  });
+  if (close) closeLanguagePicker({ restoreFocus: true });
+}
+
+function selectModel(key, { close = true } = {}) {
+  if (!modelStatuses.has(key)) return;
+  modelInput.value = key;
+  updateModelDescription();
+  if (close) closeModelPicker({ restoreFocus: true });
+}
+
+function renderModelOptions(models) {
+  modelPickerMenu.replaceChildren();
+  models.forEach((model) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = `model-option ${model.suitability}`;
+    option.dataset.key = model.key;
+    option.setAttribute("role", "option");
+
+    const copy = document.createElement("span");
+    copy.className = "model-option-copy";
+    const title = document.createElement("strong");
+    title.textContent = model.title;
+    const name = document.createElement("small");
+    name.textContent = model.model_name;
+    copy.append(title, name);
+
+    const badges = document.createElement("span");
+    badges.className = "model-option-badges";
+    if (model.recommended) badges.appendChild(createBadge("Для этого ПК", "recommended"));
+    if (model.suitability === "demanding") {
+      badges.appendChild(createBadge("Может быть медленно", "warning"));
+    }
+    badges.appendChild(
+      createBadge(model.downloaded ? "Скачана" : model.size_hint, model.downloaded ? "downloaded" : ""),
+    );
+    option.append(copy, badges);
+    option.addEventListener("click", () => selectModel(model.key));
+    modelPickerMenu.appendChild(option);
+  });
 }
 
 async function refreshModelStatuses() {
@@ -61,19 +195,16 @@ async function refreshModelStatuses() {
     const response = await fetch("/api/models", { cache: "no-store" });
     if (!response.ok) return;
     const payload = await response.json();
+    modelDevice.textContent = `Устройство: ${payload.device_summary}`;
     modelStatuses = new Map(payload.models.map((model) => [model.key, model]));
-    const cacheParts = payload.cache_directory.split("/").filter(Boolean);
+    const cacheParts = payload.cache_directory.split(/[\\/]/).filter(Boolean);
     modelCachePath.textContent = `Хранилище: ${cacheParts.at(-1) || "models"}/`;
     modelCachePath.title = payload.cache_directory;
-    const selected = modelSelect.value;
-    modelSelect.replaceChildren();
-    payload.models.forEach((model) => {
-      const option = document.createElement("option");
-      option.value = model.key;
-      option.textContent = `${model.title} (${model.model_name}, ${model.downloaded ? "скачана" : "не скачана"})`;
-      modelSelect.appendChild(option);
-    });
-    modelSelect.value = selected;
+    const selected = modelStatuses.has(modelInput.value)
+      ? modelInput.value
+      : payload.models.find((model) => model.recommended)?.key || "balanced";
+    renderModelOptions(payload.models);
+    modelInput.value = selected;
     updateModelDescription();
   } catch (_) {
     // Status refresh is helpful but should not interrupt the main workflow.
@@ -86,13 +217,76 @@ function showSelectedFile(file) {
   fileSubtitle.textContent = `${(file.size / 1024 / 1024).toFixed(1)} МБ`;
 }
 
-modelSelect.addEventListener("change", updateModelDescription);
+modelPickerButton.addEventListener("click", () => {
+  if (modelPickerMenu.classList.contains("hidden")) openModelPicker();
+  else closeModelPicker();
+});
+modelPickerButton.addEventListener("keydown", (event) => {
+  if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+  event.preventDefault();
+  openModelPicker();
+  const options = [...modelPickerMenu.querySelectorAll(".model-option")];
+  const selectedIndex = options.findIndex((option) => option.dataset.key === modelInput.value);
+  const target = event.key === "ArrowUp" ? options.at(selectedIndex - 1) : options[selectedIndex + 1];
+  (target || options[selectedIndex] || options[0])?.focus();
+});
+modelPickerMenu.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeModelPicker({ restoreFocus: true });
+    return;
+  }
+  if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+  event.preventDefault();
+  const options = [...modelPickerMenu.querySelectorAll(".model-option")];
+  const index = options.indexOf(document.activeElement);
+  const nextIndex = event.key === "ArrowDown"
+    ? Math.min(index + 1, options.length - 1)
+    : Math.max(index - 1, 0);
+  options[nextIndex]?.focus();
+});
+languagePickerButton.addEventListener("click", () => {
+  if (languagePickerMenu.classList.contains("hidden")) openLanguagePicker();
+  else closeLanguagePicker();
+});
+languagePickerButton.addEventListener("keydown", (event) => {
+  if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+  event.preventDefault();
+  openLanguagePicker();
+  const options = [...languagePickerMenu.querySelectorAll(".language-option")];
+  const selectedIndex = options.findIndex((option) => option.dataset.value === languageInput.value);
+  const target = event.key === "ArrowUp" ? options.at(selectedIndex - 1) : options[selectedIndex + 1];
+  (target || options[selectedIndex] || options[0])?.focus();
+});
+languagePickerMenu.addEventListener("click", (event) => {
+  const option = event.target.closest(".language-option");
+  if (option) selectLanguage(option.dataset.value);
+});
+languagePickerMenu.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeLanguagePicker({ restoreFocus: true });
+    return;
+  }
+  if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+  event.preventDefault();
+  const options = [...languagePickerMenu.querySelectorAll(".language-option")];
+  const index = options.indexOf(document.activeElement);
+  const nextIndex = event.key === "ArrowDown"
+    ? Math.min(index + 1, options.length - 1)
+    : Math.max(index - 1, 0);
+  options[nextIndex]?.focus();
+});
+document.addEventListener("click", (event) => {
+  if (!modelPicker.contains(event.target)) closeModelPicker();
+  if (!languagePicker.contains(event.target)) closeLanguagePicker();
+});
 deleteModelButton.addEventListener("click", async () => {
-  const model = modelStatuses.get(modelSelect.value);
+  const model = modelStatuses.get(modelInput.value);
   if (!model?.downloaded) return;
   if (!window.confirm(`Удалить ${model.model_name}? При следующем использовании её придётся скачать заново.`)) return;
   deleteModelButton.disabled = true;
-  deleteModelButton.textContent = "Удаляем…";
+  deleteModelLabel.textContent = "Удаляем…";
   try {
     const response = await fetch(`/api/models/${model.key}`, { method: "DELETE" });
     const payload = await response.json();
@@ -102,7 +296,7 @@ deleteModelButton.addEventListener("click", async () => {
     window.alert(error.message);
   } finally {
     deleteModelButton.disabled = false;
-    deleteModelButton.textContent = "Удалить модель";
+    deleteModelLabel.textContent = "Удалить модель";
   }
 });
 refreshModelStatuses();
@@ -213,6 +407,13 @@ async function pollJob(jobId) {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!fileInput.files.length) return;
+  const selectedModel = modelStatuses.get(modelInput.value);
+  if (selectedModel?.suitability === "demanding") {
+    const confirmed = window.confirm(
+      `${selectedModel.suitability_message}\n\n${selectedModel.requirements}\n\nВсё равно запустить транскрибацию?`,
+    );
+    if (!confirmed) return;
+  }
   const formData = new FormData(form);
   setFormLocked(true);
   submitButton.textContent = "Загружаем…";

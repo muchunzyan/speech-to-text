@@ -15,8 +15,12 @@ from transcriber.jobs import JobManager
 from transcriber.models import (
     choose_default_model_profile,
     delete_cached_model,
+    detect_device_capabilities,
+    engine_title,
     get_model_profile,
+    inference_engine,
     model_profiles_public,
+    model_repository,
 )
 
 SUPPORTED_EXTENSIONS = {
@@ -62,14 +66,22 @@ def create_app(settings: Settings | None = None, manager: JobManager | None = No
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request) -> HTMLResponse:
-        profiles = model_profiles_public(models_dir)
+        device = detect_device_capabilities()
+        profiles = model_profiles_public(models_dir, device=device)
+        default_profile = choose_default_model_profile(profiles)
+        selected_profile = next(
+            profile for profile in profiles if profile["key"] == default_profile
+        )
         return templates.TemplateResponse(
             request=request,
             name="index.html",
             context={
                 "profiles": profiles,
-                "default_profile": choose_default_model_profile(profiles),
+                "default_profile": default_profile,
+                "selected_profile": selected_profile,
                 "offline": settings.offline,
+                "engine_title": engine_title(inference_engine()),
+                "device_summary": device.summary,
             },
         )
 
@@ -79,9 +91,11 @@ def create_app(settings: Settings | None = None, manager: JobManager | None = No
 
     @app.get("/api/models")
     async def models() -> dict:
+        device = detect_device_capabilities()
         return {
-            "models": model_profiles_public(models_dir),
+            "models": model_profiles_public(models_dir, device=device),
             "cache_directory": str(models_dir),
+            "device_summary": device.summary,
         }
 
     @app.delete("/api/models/{profile_key}")
@@ -92,7 +106,7 @@ def create_app(settings: Settings | None = None, manager: JobManager | None = No
             raise HTTPException(404, str(exc)) from exc
         if manager.is_model_active(profile_key):
             raise HTTPException(409, "Нельзя удалить модель, пока она используется заданием")
-        deleted = delete_cached_model(profile.repository, models_dir)
+        deleted = delete_cached_model(model_repository(profile), models_dir)
         return {"deleted": deleted, "profile": profile_key}
 
     @app.post("/api/jobs", status_code=202)

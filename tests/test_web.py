@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from transcriber.config import Settings
 from transcriber.jobs import JobManager
+from transcriber.models import get_model_profile, model_repository
 from transcriber.transcription import TranscriptionResult
 from transcriber.web.app import create_app
 
@@ -32,12 +33,22 @@ def test_web_upload_and_result(tmp_path):
         assert page.status_code == 200
         assert "Локальный транскрайбер" in page.text
         assert "Помогает точнее распознавать имена" in page.text
-        assert "Whisper Large v3 Turbo" in page.text
+        assert 'id="model-picker-name"' in page.text
+        assert 'class="model-picker-button"' in page.text
+        assert 'id="model-picker-menu"' in page.text
+        assert 'class="model-overview"' in page.text
+        assert "<select name=\"model_profile\"" not in page.text
+        assert 'id="language-picker-button"' in page.text
+        assert 'id="language-picker-menu"' in page.text
+        assert "<select name=\"language\"" not in page.text
 
         models = client.get("/api/models")
         assert models.status_code == 200
         assert len(models.json()["models"]) == 3
         assert models.json()["cache_directory"] == str(models_dir)
+        assert "device_summary" in models.json()
+        assert all("requirements" in model for model in models.json()["models"])
+        assert sum(model["recommended"] for model in models.json()["models"]) == 1
 
         response = client.post(
             "/api/jobs",
@@ -74,7 +85,8 @@ def test_web_rejects_unsupported_extension(tmp_path):
 
 def test_web_deletes_managed_model(tmp_path):
     models_dir = tmp_path / "models"
-    repository_dir = models_dir / "models--mlx-community--whisper-small-mlx"
+    repository = model_repository(get_model_profile("fast"))
+    repository_dir = models_dir / f"models--{repository.replace('/', '--')}"
     repository_dir.mkdir(parents=True)
     (repository_dir / "weights.npz").write_bytes(b"model")
     manager = JobManager(transcriber=FakeTranscriber(), models_dir=models_dir)
