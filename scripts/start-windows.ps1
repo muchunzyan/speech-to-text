@@ -1,9 +1,16 @@
 ﻿$ErrorActionPreference = "Stop"
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$projectRoot = (Get-Item -LiteralPath (Join-Path $PSScriptRoot "..")).FullName
 $setupScript = Join-Path $PSScriptRoot "setup-windows.ps1"
+$python = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $transcriber = Join-Path $projectRoot ".venv\Scripts\transcriber.exe"
 
-if (-not (Test-Path $transcriber)) {
+$compatibleEnvironment = $false
+if ((Test-Path $python) -and (Test-Path $transcriber)) {
+    & $python -c "import platform, sys; raise SystemExit(sys.version_info[:2] != (3, 11) or platform.machine().lower() not in ('amd64', 'x86_64'))" 2>$null
+    $compatibleEnvironment = $LASTEXITCODE -eq 0
+}
+
+if (-not $compatibleEnvironment) {
     Write-Host "Первый запуск: подготавливаем программу..."
     & $setupScript
 }
