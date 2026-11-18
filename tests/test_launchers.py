@@ -29,4 +29,6 @@ def test_macos_launcher_uses_python_311_setup():
     launcher = (PROJECT_ROOT / "start-macos.command").read_text(encoding="utf-8")
     setup = (PROJECT_ROOT / "scripts" / "setup-macos.sh").read_text(encoding="utf-8")
     assert "setup-macos.sh" in launcher
+    assert 'chmod +x "$0"' in launcher
+    assert 'bash "$project_root/scripts/setup-macos.sh"' in launcher
     assert "python3.11 -m venv" in setup
