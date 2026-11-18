@@ -2,9 +2,12 @@
 
 ## Установка на macOS
 
+Для обычного пользователя предназначена подробная инструкция
+[«Установка на macOS»](installation-macos.md). Команды ниже — сокращённый вариант для терминала.
+
 ```bash
-brew install ffmpeg python@3.12
-python3.12 -m venv .venv
+brew install ffmpeg python@3.11
+python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e '.[dev]'
@@ -12,7 +15,11 @@ python -m pip install -e '.[dev]'
 
 ## Установка на Windows
 
-Требуется 64-битная Windows 10/11 и Python 3.11 или новее. В PowerShell:
+Для обычного пользователя предназначена инструкция
+[«Установка на Windows»](installation-windows.md). Самый простой запуск — двойной клик по
+`start-windows.bat`.
+
+Требуется 64-битная Windows 10/11 и Python 3.11 x64. В PowerShell:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -26,7 +33,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 ```powershell
 winget install --id Gyan.FFmpeg --exact
-py -3 -m venv .venv
+py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
@@ -56,6 +63,15 @@ transcriber models download quality
 Для обычного использования достаточно `balanced`.
 
 ## Запуск веб-интерфейса
+
+Файлы запуска для обычного использования:
+
+```text
+start-windows.bat    Windows
+start-macos.command  macOS
+```
+
+Ручной запуск из активированного виртуального окружения:
 
 ```bash
 transcriber web

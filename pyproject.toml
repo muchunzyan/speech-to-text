@@ -7,7 +7,7 @@ name = "local-transcriber"
 version = "0.1.0"
 description = "Private, local audio and video transcription for macOS and Windows"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 license = { text = "MIT" }
 dependencies = [
   "fastapi>=0.115,<1",

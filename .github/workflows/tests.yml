@@ -11,8 +11,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
+      - name: Validate PowerShell launchers
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem scripts\*.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
       - name: Install project
         run: python -m pip install -e ".[dev]"
       - name: Lint
